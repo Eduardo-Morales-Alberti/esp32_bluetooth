@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button id="search" onclick="onButtonClick();">Buscar</button>
+    <form onsubmit="send()" action="#">
+        <input type="text" id="command" placeholder="Command" required>
+        <input type="submit">
+    </form>
+
+    <script>
+        let global_descriptor;
+        let global_characteristic;
+
+        const encoder = new TextEncoder('utf-8');
+
+        function send() {
+            let command = document.querySelector('#command').value;
+            if (typeof global_characteristic == 'undefined') {
+                console.log('Connect first!!');
+            }
+            else {
+                console.log('Trying to send command: ' + command);
+                global_characteristic.writeValueWithoutResponse(encoder.encode(command))
+            }
+            //if (typeof global_descriptor == 'undefined') {
+            //    console.log('Connect first!!');
+            //}
+            //else {
+            //    console.log('Trying to send command: ' + command);
+            //    global_descriptor.writeValue(encoder.encode(command));
+            //}
+        }
+        function onButtonClick() {
+            let options = {};
+            options.acceptAllDevices = true;
+            options.optionalServices = ['000000ee-0000-1000-8000-00805f9b34fb'];
+            console.log('Requesting Bluetooth Device...');
+            console.log('with ' + JSON.stringify(options));
+            navigator.bluetooth.requestDevice(options)
+            .then(device => {
+                console.log('> Name:             ' + device.name);
+                console.log('> Id:               ' + device.id);
+                console.log('> Connected:        ' + device.gatt.connected);
+                return device.gatt.connect();
+            })
+            .then(server => {
+                // Note that we could also get all services that match a specific UUID by
+                // passing it to getPrimaryServices().
+                console.log('Getting Services...');
+                console.log(server);
+                //return server.getPrimaryServices();
+                return server.getPrimaryServices();
+            })
+            .then(services => {
+                console.log(services);
+                console.log('> Service: ' + services[0].uuid);
+                return services[0].getCharacteristics();
+            })
+            .then(characteristics => {
+                console.log(characteristics);
+                console.log('>> Characteristic: ' + characteristics[0].uuid);
+                return characteristics[0].startNotifications();
+            })
+            .then(characteristic => {
+                console.log('>> Characteristic notifications started: ' + characteristic.uuid);
+                global_characteristic = characteristic;
+                //characteristic.writeValueWithoutResponse(encoder.encode('aaa12'))
+
+                //return characteristic.getDescriptors();
+            })
+            //.then(descriptors => {
+            //    console.log(descriptors);
+            //    console.log('>>> Descriptor: ' + descriptors[0].uuid);
+            //    global_descriptor = descriptors[0];
+            //    global_descriptor.readValue().then(aaa => {
+            //        console.log(aaa);
+            //    });
+            //})
+            //.then(services => {
+            //    console.log('Getting Characteristics...');
+            //    let queue = Promise.resolve();
+            //    services.forEach(service => {
+            //        queue = queue.then(_ => service.getCharacteristics().then(characteristics => {
+            //        console.log('> Service: ' + service.uuid);
+            //        console.log(service);
+            //        characteristics.forEach(characteristic => {
+            //            console.log('>> Characteristic: ' + characteristic.uuid);
+            //            console.log(characteristic);
+            //            //characteristic.StartNotifications();
+            //            characteristic.getDescriptors().then(descriptors => {
+            //                descriptors.forEach(descriptor => {
+            //                    console.log('>>> Descriptor: ' + descriptor.uuid);
+            //                    global_descriptor = descriptor;
+            //                });
+            //            });
+            //        });
+            //      }));
+            //    });
+            //    return queue;
+            //})
+            .catch(error => {
+                console.log('Argh! ' + error);
+            });
+        }
+
+    </script>
+</body>
+</html>
